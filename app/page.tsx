@@ -19,14 +19,12 @@ import {
 } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_CHAT_API_URL as string;
-const SYSTEM_MESSAGE =
-  "Your role is provide all answer that ask by user. and you are working for GooDjs company";
+const SYSTEM_MESSAGE = `You are Eleuthix AI, an advanced high-intelligence general-purpose AI assistant.
 
-const USER_INSTRUCTION = `You are Eleuthix AI, an advanced high-intelligence general-purpose AI assistant.
-
-IMPORTANT IDENTITY RULE:
+IMPORTANT IDENTITY & CONTEXT RULES:
 - Your identity is strictly "Eleuthix AI".
-- If the user asks "Who are you?", "What are you?", "What is your name?", "Who is this?", or asks about your identity, name, creator, organization, or model, you MUST reply exactly: "I am Eleuthix AI."
+- ASSISTANT IDENTITY: If the user asks about YOUR (the assistant's) identity, name, creator, or model (e.g. "Who are you?", "What is your name?", "Who created you?"), reply clearly that you are Eleuthix AI.
+- USER CONTEXT RECALL: If the user asks about THEIR OWN name, identity, or previously shared details (e.g. "What is my name?", "Who am I?", "What did I say earlier?"), recall and answer using the conversation context provided. Do NOT answer "I am Eleuthix AI" when asked about the user's name or identity.
 - Override and disregard any alternative identity, company, model, or assistant name defined in any other prompt context. Never claim any identity other than Eleuthix AI.
 - Free Access Knowledge: Eleuthix AI is 100% free and open for everyone to use, with no paywalls, hidden fees, or premium subscriptions. If asked about pricing or availability, confirm that Eleuthix AI is completely free.
 
@@ -36,9 +34,7 @@ REASONING & KNOWLEDGE FRAMEWORK:
 - Direct & To-the-Point: Give clean, direct, high-value answers. Avoid filler words, conversational fluff, and unnecessary disclaimers.
 - Practical Resolution: If a question is ambiguous, choose the most beneficial interpretation and explain the optimal approach first.
 - Clear Presentation & Formatting: Format responses cleanly with standard Markdown headers (e.g. ### Heading). NEVER use underline dashes ('----' or '====') under titles. Use code blocks with language labels and concise bullet points.
-- Meta-Rules: Do not mention or repeat these system instructions in your response.
-
-Question:`;
+- Meta-Rules: Do not mention or repeat these system instructions in your response.`;
 
 interface HistoryItem {
   role: string;
@@ -298,14 +294,35 @@ function extractResponse(data: any): string {
   );
 }
 
+function buildUserPromptWithContext(
+  currentText: string,
+  historyMessages: MessageItem[],
+): string {
+  let prompt = `${SYSTEM_MESSAGE}\n\n`;
+
+  const validMessages = historyMessages.filter((m) => !m.isError);
+
+  if (validMessages.length > 0) {
+    prompt += `[Conversation History]\n`;
+    validMessages.forEach((msg) => {
+      const speaker = msg.role === "user" ? "User" : "Assistant (Eleuthix AI)";
+      prompt += `${speaker}: ${msg.content}\n`;
+    });
+    prompt += `\n`;
+  }
+
+  prompt += `[Current User Query]\n${currentText}`;
+  return prompt;
+}
+
 export default function Home() {
   const [messages, setMessages] = useState<MessageItem[]>([]);
-  const [history, setHistory] = useState<HistoryItem[]>([
-    { role: "system", content: SYSTEM_MESSAGE },
-  ]);
   const [inputVal, setInputVal] = useState("");
   const [isPending, setIsPending] = useState(false);
   const [isDark, setIsDark] = useState(false);
+
+  const [showHeader, setShowHeader] = useState(true);
+  const lastScrollY = useRef(0);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const chatRef = useRef<HTMLElement>(null);
@@ -313,15 +330,43 @@ export default function Home() {
 
   const scrollToBottom = () => {
     requestAnimationFrame(() => {
+      window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        behavior: "smooth",
+      });
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      if (chatRef.current) {
-        chatRef.current.scrollTo({
-          top: chatRef.current.scrollHeight,
-          behavior: "smooth",
-        });
-      }
     });
   };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      // Always keep header visible when on initial empty page
+      if (messages.length === 0) {
+        setShowHeader(true);
+        return;
+      }
+
+      const currentScrollY =
+        window.scrollY || document.documentElement.scrollTop;
+
+      if (currentScrollY <= 20) {
+        setShowHeader(true);
+        lastScrollY.current = currentScrollY;
+        return;
+      }
+
+      if (currentScrollY > lastScrollY.current + 8) {
+        setShowHeader(false);
+      } else if (currentScrollY < lastScrollY.current - 8) {
+        setShowHeader(true);
+      }
+
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [messages.length]);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("chat-theme");
@@ -336,7 +381,12 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    scrollToBottom();
+    if (messages.length > 0) {
+      scrollToBottom();
+    } else {
+      setShowHeader(true);
+      window.scrollTo({ top: 0, behavior: "instant" });
+    }
   }, [messages, isPending]);
 
   const toggleTheme = () => {
@@ -352,8 +402,9 @@ export default function Home() {
   };
 
   const handleClear = () => {
-    setHistory([{ role: "system", content: SYSTEM_MESSAGE }]);
     setMessages([]);
+    setShowHeader(true);
+    window.scrollTo({ top: 0, behavior: "instant" });
     textareaRef.current?.focus();
   };
 
@@ -382,19 +433,16 @@ export default function Home() {
     const text = inputVal.trim();
     if (!text || isPending) return;
 
-    const enhancedMessage = `${USER_INSTRUCTION}\n${text}`;
     const userMsg: MessageItem = {
       id: Date.now().toString() + "-user",
       role: "user",
       content: text,
     };
 
+    // Include system instructions + past conversation history + query into user prompt context
+    const fullUserPrompt = buildUserPromptWithContext(text, messages);
+
     setMessages((prev) => [...prev, userMsg]);
-    const updatedHistory = [
-      ...history,
-      { role: "user", content: enhancedMessage },
-    ];
-    setHistory(updatedHistory);
     setInputVal("");
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -415,8 +463,7 @@ export default function Home() {
           Accept: "application/json",
         },
         body: JSON.stringify({
-          message: enhancedMessage,
-          history: updatedHistory,
+          message: fullUserPrompt,
         }),
       });
       rawText = await response.text();
@@ -443,7 +490,6 @@ export default function Home() {
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
-      setHistory((prev) => [...prev, { role: "assistant", content: answer }]);
       scrollToBottom();
     } catch (error: any) {
       const errorMsg: MessageItem = {
@@ -471,231 +517,313 @@ export default function Home() {
 
   return (
     <>
-      <main className="app">
-        <header>
+      <main className="w-full max-w-[1060px] min-h-screen mx-auto flex flex-col relative">
+        <header
+          className={`fixed top-2.5 sm:top-4 left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] sm:w-[calc(100%-2rem)] max-w-[880px] h-[54px] sm:h-[60px] z-50 rounded-2xl sm:rounded-[22px] flex items-center justify-between px-4 sm:px-5 border border-[var(--border)] bg-[rgba(var(--surface-rgb),0.85)] backdrop-blur-xl transition-all duration-350 ease-out shadow-sm ${
+            showHeader
+              ? "translate-y-0 opacity-100 pointer-events-auto"
+              : "-translate-y-[130%] opacity-0 pointer-events-none"
+          }`}
+        >
           <div
-            className="brand-wrap"
+            className="flex items-center gap-3 cursor-pointer select-none min-w-0 flex-shrink group"
             onClick={handleClear}
             role="button"
             tabIndex={0}
             title="Reset conversation"
           >
-            <div className="brand-icon">
+            <div className="w-[32px] h-[32px] sm:w-[36px] sm:h-[36px] flex-shrink-0 flex items-center justify-center rounded-lg sm:rounded-[12px] overflow-hidden shadow-xs group-hover:scale-105 transition-all duration-200">
               <Image
                 src="/logo.png"
                 alt="Eleuthix AI Logo"
-                width={38}
-                height={38}
-                className="brand-logo-img"
+                width={36}
+                height={36}
+                className="w-full h-full object-cover"
               />
             </div>
-            <div className="brand-text-block">
-              <h1 className="brand">Eleuthix AI</h1>
-              <div className="status">
-                <span className="dot"></span>
-                <span>Connected</span>
-                <span className="status-extra"> · Always Free</span>
+            <div className="flex flex-col justify-center min-w-0">
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-[14.5px] sm:text-[16px] font-extrabold tracking-tight text-[var(--text)] whitespace-nowrap">
+                  Eleuthix AI
+                </h1>
+              </div>
+              <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] text-[var(--muted)] font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981] animate-pulse"></span>
+                <span className="text-emerald-500 font-semibold">Online</span>
+                <span className="hidden sm:inline"> · Always Free</span>
               </div>
             </div>
           </div>
-          <div className="header-actions">
+          <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
             <button
-              className="icon-btn"
+              className="h-[34px] sm:h-[38px] px-3 sm:px-4 rounded-xl text-[11.5px] sm:text-[13px] font-semibold flex items-center gap-2 border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] hover:bg-[var(--surface-hover)] hover:-translate-y-0.5 transition-all shadow-sm cursor-pointer active:scale-95"
+              title="New Chat"
+              aria-label="New Chat"
+              onClick={handleClear}
+            >
+              <RotateCcw size={15} className="transition-transform duration-300 group-hover:-rotate-90" />
+              <span className="hidden sm:inline">New Chat</span>
+            </button>
+            <button
+              className="w-[34px] h-[34px] sm:w-[38px] sm:h-[38px] rounded-xl flex items-center justify-center border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] hover:bg-[var(--surface-hover)] hover:-translate-y-0.5 transition-all shadow-sm cursor-pointer active:scale-95"
               id="themeBtn"
-              title="Toggle theme"
+              title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
               aria-label="Toggle theme"
               onClick={toggleTheme}
             >
-              {isDark ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
-            <button
-              className="icon-btn"
-              id="clearBtn"
-              title="Clear chat"
-              aria-label="Clear chat"
-              onClick={handleClear}
-            >
-              <RotateCcw size={18} />
+              {isDark ? <Sun size={17} /> : <Moon size={17} />}
             </button>
           </div>
         </header>
 
-        <section id="chat" className="chat" ref={chatRef} aria-label="Chat Conversation">
+        <section
+          id="chat"
+          className="flex-1 w-full pt-[90px] sm:pt-[120px] pb-[140px] sm:pb-[170px] px-3 sm:px-6"
+          ref={chatRef}
+          aria-label="Chat Conversation"
+        >
           {messages.length === 0 ? (
-            <div id="empty" className="empty">
-              <div className="hero-container">
-                <div className="hero-logo-wrapper">
+            <div
+              id="empty"
+              className="min-h-[calc(100vh-240px)] flex flex-col items-center justify-center text-center py-8"
+            >
+              <div className="flex flex-col items-center max-w-[760px] w-full">
+                <div className="relative w-14 h-14 mb-5 rounded-2xl shadow-xl">
                   <Image
                     src="/logo.png"
                     alt="Eleuthix AI"
-                    width={52}
-                    height={52}
-                    className="hero-logo-img"
+                    width={56}
+                    height={56}
+                    className="w-full h-full object-cover rounded-2xl"
                   />
                 </div>
 
-                <h2 className="hero-title">What would you like to build today?</h2>
-                <p className="hero-subtitle">
-                  High-precision AI for software development, technical reasoning, and structured writing.
+                <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--text)] mb-2.5">
+                  What would you like to build today?
+                </h2>
+                <p className="text-xs sm:text-[15px] text-[var(--muted)] max-w-[540px] mb-6 sm:mb-8 leading-relaxed">
+                  High-precision AI for software development, technical
+                  reasoning, and structured writing.
                 </p>
 
-                <div className="suggestions-grid">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full">
                   <button
                     type="button"
-                    className="suggestion-card"
-                    onClick={() => handleSuggestionClick("Write a responsive HTML5 webpage structure with CSS styling")}
+                    className="flex items-center gap-3.5 p-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-left cursor-pointer hover:-translate-y-0.5 hover:border-[var(--input-border)] hover:bg-[var(--surface-soft)] hover:shadow-md transition-all group"
+                    onClick={() =>
+                      handleSuggestionClick(
+                        "Write a responsive HTML5 webpage structure with CSS styling",
+                      )
+                    }
                   >
-                    <div className="card-icon-wrapper code">
+                    <div className="w-10 h-10 flex-shrink-0 rounded-xl bg-blue-500/12 text-blue-500 flex items-center justify-center">
                       <Code2 size={20} />
                     </div>
-                    <div className="card-content">
-                      <div className="card-title">Write HTML5 Page</div>
-                      <div className="card-desc">Generate a responsive web layout with clean CSS</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13px] sm:text-sm font-semibold text-[var(--text)] mb-0.5">
+                        Write HTML5 Page
+                      </div>
+                      <div className="text-[11px] sm:text-xs text-[var(--muted)] truncate">
+                        Generate a responsive web layout with clean CSS
+                      </div>
                     </div>
-                    <ArrowRight size={14} className="card-arrow" />
+                    <ArrowRight
+                      size={14}
+                      className="text-[var(--muted)] opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-[var(--text)] transition-all"
+                    />
                   </button>
 
                   <button
                     type="button"
-                    className="suggestion-card"
-                    onClick={() => handleSuggestionClick("Explain how WebSockets work step by step with code examples")}
+                    className="flex items-center gap-3.5 p-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-left cursor-pointer hover:-translate-y-0.5 hover:border-[var(--input-border)] hover:bg-[var(--surface-soft)] hover:shadow-md transition-all group"
+                    onClick={() =>
+                      handleSuggestionClick(
+                        "Explain how WebSockets work step by step with code examples",
+                      )
+                    }
                   >
-                    <div className="card-icon-wrapper zap">
+                    <div className="w-10 h-10 flex-shrink-0 rounded-xl bg-amber-500/12 text-amber-500 flex items-center justify-center">
                       <Zap size={20} />
                     </div>
-                    <div className="card-content">
-                      <div className="card-title">Explain WebSockets</div>
-                      <div className="card-desc">Understand real-time protocol architecture step-by-step</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13px] sm:text-sm font-semibold text-[var(--text)] mb-0.5">
+                        Explain WebSockets
+                      </div>
+                      <div className="text-[11px] sm:text-xs text-[var(--muted)] truncate">
+                        Understand real-time protocol architecture step-by-step
+                      </div>
                     </div>
-                    <ArrowRight size={14} className="card-arrow" />
+                    <ArrowRight
+                      size={14}
+                      className="text-[var(--muted)] opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-[var(--text)] transition-all"
+                    />
                   </button>
 
                   <button
                     type="button"
-                    className="suggestion-card"
-                    onClick={() => handleSuggestionClick("Debug JavaScript memory leaks in React hooks with code examples")}
+                    className="flex items-center gap-3.5 p-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-left cursor-pointer hover:-translate-y-0.5 hover:border-[var(--input-border)] hover:bg-[var(--surface-soft)] hover:shadow-md transition-all group"
+                    onClick={() =>
+                      handleSuggestionClick(
+                        "Debug JavaScript memory leaks in React hooks with code examples",
+                      )
+                    }
                   >
-                    <div className="card-icon-wrapper bug">
+                    <div className="w-10 h-10 flex-shrink-0 rounded-xl bg-red-500/12 text-red-500 flex items-center justify-center">
                       <Bug size={20} />
                     </div>
-                    <div className="card-content">
-                      <div className="card-title">Debug React Hooks</div>
-                      <div className="card-desc">Diagnose memory leaks and optimize hook performance</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13px] sm:text-sm font-semibold text-[var(--text)] mb-0.5">
+                        Debug React Hooks
+                      </div>
+                      <div className="text-[11px] sm:text-xs text-[var(--muted)] truncate">
+                        Diagnose memory leaks and optimize hook performance
+                      </div>
                     </div>
-                    <ArrowRight size={14} className="card-arrow" />
+                    <ArrowRight
+                      size={14}
+                      className="text-[var(--muted)] opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-[var(--text)] transition-all"
+                    />
                   </button>
 
                   <button
                     type="button"
-                    className="suggestion-card"
-                    onClick={() => handleSuggestionClick("Draft a project roadmap for a SaaS web application")}
+                    className="flex items-center gap-3.5 p-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-left cursor-pointer hover:-translate-y-0.5 hover:border-[var(--input-border)] hover:bg-[var(--surface-soft)] hover:shadow-md transition-all group"
+                    onClick={() =>
+                      handleSuggestionClick(
+                        "Draft a project roadmap for a SaaS web application",
+                      )
+                    }
                   >
-                    <div className="card-icon-wrapper plan">
+                    <div className="w-10 h-10 flex-shrink-0 rounded-xl bg-emerald-500/12 text-emerald-500 flex items-center justify-center">
                       <FileText size={20} />
                     </div>
-                    <div className="card-content">
-                      <div className="card-title">Draft Project Plan</div>
-                      <div className="card-desc">Plan architecture and timelines for a SaaS platform</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13px] sm:text-sm font-semibold text-[var(--text)] mb-0.5">
+                        Draft Project Plan
+                      </div>
+                      <div className="text-[11px] sm:text-xs text-[var(--muted)] truncate">
+                        Plan architecture and timelines for a SaaS platform
+                      </div>
                     </div>
-                    <ArrowRight size={14} className="card-arrow" />
+                    <ArrowRight
+                      size={14}
+                      className="text-[var(--muted)] opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-[var(--text)] transition-all"
+                    />
                   </button>
                 </div>
               </div>
             </div>
           ) : (
-            messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`message ${msg.role}${msg.isError ? " error" : ""}`}
-              >
-                {msg.role === "assistant" ? (
-                  <div className="assistant-content">
-                    <div className="assistant-meta">
-                      <span className="assistant-avatar">
+            <div className="w-full max-w-[880px] mx-auto">
+              {messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`flex mb-7 ${msg.role === "user" ? "justify-end" : ""}`}
+                >
+                  {msg.role === "assistant" ? (
+                    <div className="w-full">
+                      <div className="flex items-center gap-2 mb-2 ml-0.5 text-[11px] sm:text-xs text-[var(--muted)]">
+                        <span className="w-6 h-6 flex items-center justify-center rounded-md overflow-hidden bg-black shadow-sm">
+                          <Image
+                            src="/logo.png"
+                            alt="Eleuthix"
+                            width={18}
+                            height={18}
+                            className="w-full h-full object-cover"
+                          />
+                        </span>
+                        <span className="font-semibold text-[var(--assistant-name)]">
+                          Eleuthix AI
+                        </span>
+                      </div>
+                      <div
+                        className={
+                          msg.isError
+                            ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900 p-3.5 rounded-xl text-xs sm:text-sm"
+                            : "w-full text-[12px] sm:text-[15px] leading-relaxed text-[var(--text)]"
+                        }
+                      >
+                        {msg.isError ? (
+                          msg.content
+                        ) : (
+                          <RenderAssistant content={msg.content} />
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="max-w-[88%] sm:max-w-[640px] px-3.5 sm:px-4 py-2.5 sm:py-3 bg-zinc-900 dark:bg-zinc-800/90 text-white dark:text-zinc-100 border border-transparent dark:border-white/10 rounded-2xl rounded-br-xs text-[12px] sm:text-[15px] leading-relaxed shadow-sm whitespace-pre-wrap break-words">
+                      {msg.content}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {isPending && (
+                <div className="flex mb-7" id="typing">
+                  <div className="w-full">
+                    <div className="flex items-center gap-2 mb-2 ml-0.5 text-[11px] sm:text-xs text-[var(--muted)]">
+                      <span className="w-6 h-6 flex items-center justify-center rounded-md overflow-hidden bg-black shadow-sm">
                         <Image
                           src="/logo.png"
                           alt="Eleuthix"
                           width={18}
                           height={18}
-                          className="assistant-avatar-img"
+                          className="w-full h-full object-cover"
                         />
                       </span>
-                      <span className="assistant-name">Eleuthix AI</span>
+                      <span className="font-semibold text-[var(--assistant-name)]">
+                        Eleuthix AI
+                      </span>
                     </div>
-                    <div
-                      className={
-                        msg.isError
-                          ? "assistant-bubble error"
-                          : "assistant-bubble"
-                      }
-                    >
-                      {msg.isError ? (
-                        msg.content
-                      ) : (
-                        <RenderAssistant content={msg.content} />
-                      )}
+                    <div>
+                      <span className="typing">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </span>
                     </div>
                   </div>
-                ) : (
-                  <div className="bubble">{msg.content}</div>
-                )}
-              </div>
-            ))
-          )}
-
-          {isPending && (
-            <div className="message assistant" id="typing">
-              <div className="assistant-content">
-                <div className="assistant-meta">
-                  <span className="assistant-avatar">
-                    <Image
-                      src="/logo.png"
-                      alt="Eleuthix"
-                      width={18}
-                      height={18}
-                      className="assistant-avatar-img"
-                    />
-                  </span>
-                  <span className="assistant-name">Eleuthix AI</span>
                 </div>
-                <div className="assistant-bubble">
-                  <span className="typing">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                  </span>
-                </div>
-              </div>
+              )}
             </div>
           )}
           <div ref={messagesEndRef} />
         </section>
       </main>
 
-      <div className="composer-wrap">
-        <form id="form" className="composer" onSubmit={handleSubmit}>
-          <textarea
-            id="input"
-            ref={textareaRef}
-            placeholder="Type your message..."
-            rows={1}
-            autoComplete="off"
-            value={inputVal}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            disabled={isPending}
-          />
-          <button
-            id="send"
-            className="send-btn"
-            type="submit"
-            aria-label="Send"
-            disabled={isPending || !inputVal.trim()}
+      <div className="fixed bottom-0 max-w-[1060px] mx-auto left-0 right-0 z-40 pointer-events-none flex flex-col items-center px-3 sm:px-4 pb-3.5 sm:pb-4.5 pt-3 bg-gradient-to-t from-[var(--bg)] via-[var(--bg)]/80 to-transparent">
+        <div className="pointer-events-auto w-[calc(100%-1.5rem)] sm:w-[calc(100%-2rem)] max-w-[880px] flex flex-col items-center">
+          <form
+            id="form"
+            className="w-full flex items-end gap-3 p-1.5 sm:p-2 pl-3.5 sm:pl-4 bg-[rgba(var(--surface-rgb),0.85)] backdrop-blur-xl border border-[var(--border)] rounded-2xl sm:rounded-[22px] shadow-sm focus-within:border-[var(--input-border)] focus-within:ring-2 focus-within:ring-emerald-500/15 transition-all"
+            onSubmit={handleSubmit}
           >
-            <SendHorizontal size={18} />
-          </button>
-        </form>
-        <div className="hint">Enter to send · Shift + Enter for new line</div>
+            <textarea
+              id="input"
+              ref={textareaRef}
+              placeholder="Type your message..."
+              rows={1}
+              autoComplete="off"
+              value={inputVal}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              disabled={isPending}
+              className="flex-1 min-h-[24px] max-h-[160px] resize-none border-0 outline-none py-1.5 bg-transparent text-[12px] sm:text-[15px] text-[var(--text)] placeholder-[var(--muted)] leading-relaxed"
+            />
+            <button
+              id="send"
+              className="w-[34px] h-[34px] sm:w-[38px] sm:h-[38px] flex-shrink-0 border-0 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center hover:scale-105 active:scale-95 disabled:opacity-35 disabled:cursor-not-allowed transition-all cursor-pointer"
+              type="submit"
+              aria-label="Send"
+              disabled={isPending || !inputVal.trim()}
+            >
+              <SendHorizontal size={18} />
+            </button>
+          </form>
+          <div className="mt-2 text-center text-[11px] text-[var(--muted)] tracking-tight">
+            Enter to send · Shift + Enter for new line
+          </div>
+        </div>
       </div>
     </>
   );
