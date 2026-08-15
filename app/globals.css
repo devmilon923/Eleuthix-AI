@@ -194,7 +194,9 @@ body.dark .inline-code {
   background: var(--code-toolbar);
   border-bottom: 1px solid var(--code-border);
 }
-
+html {
+  overflow-x: hidden;
+}
 .code-language {
   font-size: 12px;
   font-weight: 600;
