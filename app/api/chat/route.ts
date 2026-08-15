@@ -37,7 +37,17 @@ export async function POST(req: Request) {
       );
     }
 
-    return NextResponse.json(data);
+    const answer =
+      typeof data === "object" && data !== null
+        ? data.response ?? data.message ?? data.content ?? data.answer ?? JSON.stringify(data)
+        : String(data);
+
+    return NextResponse.json({
+      status: "success",
+      response: answer,
+      developer: "dev.milon923@gmail.com",
+      service: "Eleuthix AI Core",
+    });
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || "Internal Server Error" },

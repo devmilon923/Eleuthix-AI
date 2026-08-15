@@ -286,6 +286,19 @@ export default function Home() {
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const chatRef = useRef<HTMLElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      if (chatRef.current) {
+        chatRef.current.scrollTo({
+          top: chatRef.current.scrollHeight,
+          behavior: "smooth",
+        });
+      }
+    });
+  };
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("chat-theme");
@@ -298,6 +311,10 @@ export default function Home() {
     }
     textareaRef.current?.focus();
   }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isPending]);
 
   const toggleTheme = () => {
     const nextDark = !isDark;
@@ -315,17 +332,6 @@ export default function Home() {
     setHistory([{ role: "system", content: SYSTEM_MESSAGE }]);
     setMessages([]);
     textareaRef.current?.focus();
-  };
-
-  const scrollToBottom = () => {
-    requestAnimationFrame(() => {
-      if (chatRef.current) {
-        chatRef.current.scrollTo({
-          top: chatRef.current.scrollHeight,
-          behavior: "smooth",
-        });
-      }
-    });
   };
 
   const adjustTextareaHeight = () => {
@@ -526,6 +532,7 @@ export default function Home() {
               </div>
             </div>
           )}
+          <div ref={messagesEndRef} />
         </section>
       </main>
 
