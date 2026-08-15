@@ -81,23 +81,32 @@ header {
 .brand-icon {
   width: 38px;
   height: 38px;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 11px;
-  background: #181816;
-  color: white;
-  font-size: 19px;
+  overflow: hidden;
+  background: transparent;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
 }
 
-body.dark .brand-icon {
-  background: #f1f1ed;
-  color: #171717;
+.brand-icon:hover {
+  transform: scale(1.05);
+}
+
+.brand-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 11px;
 }
 
 .brand {
   font-size: 18px;
   font-weight: 700;
   letter-spacing: -.025em;
+  margin: 0;
 }
 
 .status {
@@ -114,6 +123,48 @@ body.dark .brand-icon {
   height: 7px;
   border-radius: 50%;
   background: #39a76b;
+  box-shadow: 0 0 6px rgba(57, 167, 107, 0.6);
+  animation: pulse-green 2s infinite;
+}
+
+@keyframes pulse-green {
+  0% {
+    box-shadow: 0 0 0 0 rgba(57, 167, 107, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(57, 167, 107, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(57, 167, 107, 0);
+  }
+}
+
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 24px;
+  max-width: 680px;
+}
+
+.suggestion-chip {
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--secondary-text);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.suggestion-chip:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+  border-color: var(--input-border);
+  transform: translateY(-1px);
 }
 
 .header-actions {

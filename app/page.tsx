@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import Image from "next/image";
 import hljs from "highlight.js";
 
 const API_URL = process.env.NEXT_PUBLIC_CHAT_API_URL as string;
@@ -439,16 +440,31 @@ export default function Home() {
     }
   };
 
+  const handleSuggestionClick = (suggestionText: string) => {
+    setInputVal(suggestionText);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  };
+
   return (
     <>
       <main className="app">
         <header>
           <div className="brand-wrap">
-            <div className="brand-icon">▣</div>
+            <div className="brand-icon">
+              <Image
+                src="/icon.png"
+                alt="Eleuthix AI Logo"
+                width={38}
+                height={38}
+                className="brand-logo-img"
+              />
+            </div>
             <div>
-              <div className="brand">Eleuthix AI</div>
+              <h1 className="brand">Eleuthix AI</h1>
               <div className="status">
-                <span className="dot"></span>Connected
+                <span className="dot"></span>Connected · Always Free
               </div>
             </div>
           </div>
@@ -457,6 +473,7 @@ export default function Home() {
               className="icon-btn"
               id="themeBtn"
               title="Toggle theme"
+              aria-label="Toggle theme"
               onClick={toggleTheme}
             >
               {isDark ? "☀" : "☾"}
@@ -465,6 +482,7 @@ export default function Home() {
               className="icon-btn"
               id="clearBtn"
               title="Clear chat"
+              aria-label="Clear chat"
               onClick={handleClear}
             >
               ⌫
@@ -472,14 +490,44 @@ export default function Home() {
           </div>
         </header>
 
-        <section id="chat" className="chat" ref={chatRef}>
+        <section id="chat" className="chat" ref={chatRef} aria-label="Chat Conversation">
           {messages.length === 0 ? (
             <div id="empty" className="empty">
               <div>
-                <h1>Ask anything.</h1>
+                <h2>Ask anything with Eleuthix AI.</h2>
                 <p>
-                  Send a message to start chatting with your free AI assistant.
+                  Instant, free AI intelligence for coding, reasoning, and technical analysis.
                 </p>
+                <div className="suggestions">
+                  <button
+                    type="button"
+                    className="suggestion-chip"
+                    onClick={() => handleSuggestionClick("Write a responsive HTML5 webpage structure")}
+                  >
+                    💻 Write HTML5 Page
+                  </button>
+                  <button
+                    type="button"
+                    className="suggestion-chip"
+                    onClick={() => handleSuggestionClick("Explain how WebSockets work step by step")}
+                  >
+                    ⚡ Explain WebSockets
+                  </button>
+                  <button
+                    type="button"
+                    className="suggestion-chip"
+                    onClick={() => handleSuggestionClick("Debug JavaScript memory leaks in React hooks")}
+                  >
+                    🐞 Debug React Hooks
+                  </button>
+                  <button
+                    type="button"
+                    className="suggestion-chip"
+                    onClick={() => handleSuggestionClick("Draft a project roadmap for a SaaS web application")}
+                  >
+                    📝 Draft Project Plan
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
