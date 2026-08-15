@@ -582,60 +582,91 @@ body.dark .inline-code {
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: min(1100px, 100%);
-  padding: 18px 28px 20px;
-  background: linear-gradient(to top, var(--bg) 70%, rgba(247, 247, 245, 0));
+  width: min(1000px, 100%);
+  padding: 16px 24px 22px;
+  background: linear-gradient(to top, var(--bg) 75%, rgba(247, 247, 245, 0));
 }
 
 body.dark .composer-wrap {
-  background: linear-gradient(to top, var(--bg) 70%, rgba(23, 23, 23, 0));
+  background: linear-gradient(to top, var(--bg) 75%, rgba(23, 23, 23, 0));
 }
 
 .composer {
   display: flex;
-  gap: 9px;
+  gap: 12px;
   align-items: flex-end;
-  padding: 8px 9px 8px 13px;
+  padding: 10px 10px 10px 18px;
   background: var(--surface);
-  border: 1px solid var(--input-border);
-  border-radius: 17px;
-  box-shadow: 0 10px 35px var(--composer-shadow);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.02);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.composer:focus-within {
+  border-color: var(--input-border);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.09), 0 0 0 2px rgba(16, 185, 129, 0.15);
+}
+
+body.dark .composer {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+body.dark .composer:focus-within {
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45), 0 0 0 2px rgba(16, 185, 129, 0.2);
 }
 
 textarea {
   flex: 1;
-  min-height: 44px;
-  max-height: 150px;
+  min-height: 24px;
+  max-height: 180px;
   resize: none;
   border: 0;
   outline: 0;
-  padding: 11px 5px;
+  padding: 8px 0;
   background: transparent;
-  font: inherit;
-  color: inherit;
-  line-height: 1.45;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+textarea::placeholder {
+  color: var(--muted);
+  font-size: 14.5px;
 }
 
 .send-btn {
-  width: 42px;
-  height: 42px;
-  flex: 0 0 42px;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
   border: 0;
-  border-radius: 50%;
+  border-radius: 14px;
   background: #181816;
-  color: #fff;
+  color: #ffffff;
   cursor: pointer;
-  font-size: 18px;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body.dark .send-btn {
+  background: #f1f1ed;
+  color: #171717;
 }
 
 .send-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.send-btn:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .send-btn:disabled {
-  opacity: .45;
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
@@ -643,7 +674,8 @@ textarea {
   margin-top: 8px;
   text-align: center;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 11.5px;
+  letter-spacing: -0.01em;
 }
 
 .typing {
