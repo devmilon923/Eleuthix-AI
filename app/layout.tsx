@@ -11,7 +11,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://eleuthix-ai.vercel.app"),
+  metadataBase: new URL("https://eleuthixai.vercel.app"),
   title: "Eleuthix AI — Free Next-Gen AI Assistant for Reasoning & Coding",
   description:
     "Experience Eleuthix AI, a fast, free, general-purpose AI assistant designed for high-precision reasoning, software development, technical analysis, and structured writing. No account or login required.",
