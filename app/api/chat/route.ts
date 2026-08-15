@@ -1,80 +1,63 @@
 import { NextResponse } from "next/server";
 
-// Helper: Fetch authorized client origin from process.env.CLIENT_URL or default domain
-function getAllowedOrigins(): string[] {
-  const envUrl = process.env.CLIENT_URL;
-  const origins = [
-    "https://eleuthixai.vercel.app",
-    "https://eleuthix-ai.vercel.app",
-  ];
-
-  if (envUrl) {
-    try {
-      const formatted = envUrl.startsWith("http") ? envUrl : `https://${envUrl}`;
-      const parsed = new URL(formatted);
-      const parsedOrigin = parsed.origin.toLowerCase();
-      if (!origins.includes(parsedOrigin)) {
-        origins.push(parsedOrigin);
-      }
-    } catch {
-      // Ignore malformed URL
-    }
+// Helper: Fetch authorized client origin directly from process.env.CLIENT_URL
+function getAllowedOrigin(): string {
+  const envUrl = process.env.CLIENT_URL as string;
+  try {
+    const formatted = envUrl.startsWith("http") ? envUrl : `https://${envUrl}`;
+    const parsed = new URL(formatted);
+    return parsed.origin.toLowerCase();
+  } catch {
+    return envUrl.toLowerCase();
   }
-
-  return origins;
 }
 
-// Strict Security Helper: Validate requesting client Origin, Referer, and Host
+// Security Helper: Validate requesting client Origin, Referer, and Host against environment CLIENT_URL
 function isOriginAllowed(req: Request): {
   allowed: boolean;
-  origin: string | null;
+  origin: string;
 } {
   const origin = req.headers.get("origin");
   const referer = req.headers.get("referer");
   const host = req.headers.get("host");
 
-  const allowedOrigins = getAllowedOrigins();
+  const allowedOrigin = getAllowedOrigin();
 
-  // Strict check Origin header
-  if (origin && allowedOrigins.includes(origin.toLowerCase())) {
+  // Check Origin header
+  if (origin && origin.toLowerCase() === allowedOrigin) {
     return { allowed: true, origin };
   }
 
-  // Strict check Referer header
+  // Check Referer header
   if (referer) {
     try {
       const refererUrl = new URL(referer);
-      const refererOrigin = refererUrl.origin.toLowerCase();
-      if (allowedOrigins.includes(refererOrigin)) {
-        return { allowed: true, origin: refererOrigin };
+      if (refererUrl.origin.toLowerCase() === allowedOrigin) {
+        return { allowed: true, origin: refererUrl.origin };
       }
     } catch {
       // Ignore invalid URL
     }
   }
 
-  // Strict check Host header
+  // Same-origin Host header verification
   if (host) {
     const hostWithProtocol = `https://${host}`.toLowerCase();
-    const isHostAllowed = allowedOrigins.some(
-      (allowed) =>
-        allowed.includes(host.toLowerCase()) || hostWithProtocol.includes(allowed),
-    );
-    if (isHostAllowed) {
+    if (
+      allowedOrigin.includes(host.toLowerCase()) ||
+      hostWithProtocol === allowedOrigin
+    ) {
       return { allowed: true, origin: origin || `https://${host}` };
     }
   }
 
-  return { allowed: false, origin: null };
+  return { allowed: false, origin: allowedOrigin };
 }
 
 // CORS Headers builder
-function getCorsHeaders(origin: string | null) {
-  const defaultClientUrl =
-    process.env.CLIENT_URL || "https://eleuthixai.vercel.app";
-
+function getCorsHeaders(origin: string) {
   return {
-    "Access-Control-Allow-Origin": origin || defaultClientUrl,
+    "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
   };
@@ -92,7 +75,7 @@ export async function OPTIONS(req: Request) {
 }
 
 export async function POST(req: Request) {
-  // Strict security origin check
+  // Security origin check against environment CLIENT_URL
   const { allowed, origin } = isOriginAllowed(req);
 
   if (!allowed) {
@@ -100,7 +83,7 @@ export async function POST(req: Request) {
       { error: "Access denied: Request origin is not authorized." },
       {
         status: 403,
-        headers: getCorsHeaders(null),
+        headers: getCorsHeaders(origin),
       },
     );
   }
