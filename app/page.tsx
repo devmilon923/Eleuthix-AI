@@ -579,7 +579,7 @@ export default function Home() {
 
         <section
           id="chat"
-          className="flex-1 w-full pt-[76px] sm:pt-[84px] pb-[100px] sm:pb-[110px] px-3 sm:px-6 flex flex-col"
+          className="flex-1 w-full pt-[76px] sm:pt-[104px] pb-[100px] sm:pb-[110px] px-3 sm:px-6 flex flex-col"
           ref={chatRef}
           aria-label="Chat Conversation"
         >
