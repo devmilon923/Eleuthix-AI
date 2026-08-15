@@ -493,7 +493,8 @@ export default function Home() {
               <h1 className="brand">Eleuthix AI</h1>
               <div className="status">
                 <span className="dot"></span>
-                <span>Connected · Always Free</span>
+                <span>Connected</span>
+                <span className="status-extra"> · Always Free</span>
               </div>
             </div>
           </div>

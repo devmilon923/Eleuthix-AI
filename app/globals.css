@@ -72,9 +72,10 @@ header {
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
-  z-index: 20;
+  z-index: 50;
   background: var(--bg);
   backdrop-filter: blur(12px);
+  width: 100%;
 }
 
 .brand-wrap {
@@ -83,6 +84,9 @@ header {
   gap: 12px;
   cursor: pointer;
   user-select: none;
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
 }
 
 .brand-icon {
@@ -116,6 +120,8 @@ header {
   flex-direction: column;
   justify-content: center;
   cursor: pointer;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .brand {
@@ -126,6 +132,9 @@ header {
   margin: 0;
   color: var(--text);
   cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .status {
@@ -138,6 +147,9 @@ header {
   font-weight: 500;
   line-height: 1;
   cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dot {
@@ -163,9 +175,16 @@ header {
 }
 
 .header-actions {
-  display: flex;
+  display: flex !important;
   align-items: center;
   gap: 8px;
+  flex: 0 0 auto;
+  flex-shrink: 0;
+  margin-left: 12px;
+  position: relative;
+  z-index: 51;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .header-actions button,
@@ -173,16 +192,68 @@ header {
   width: 36px;
   height: 36px;
   flex: 0 0 36px;
-  display: inline-flex;
+  display: flex !important;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border);
   background: var(--surface);
-  color: var(--secondary-text);
+  color: var(--text);
   border-radius: 10px;
   cursor: pointer !important;
   transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
   padding: 0;
+  position: relative;
+  z-index: 52;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+@media (max-width: 540px) {
+  .app {
+    padding: 0 12px;
+  }
+
+  header {
+    height: 60px;
+  }
+
+  .brand-wrap {
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .brand-icon {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+  }
+
+  .brand {
+    font-size: 14.5px;
+  }
+
+  .status {
+    font-size: 10.5px;
+  }
+
+  .status-extra {
+    display: none;
+  }
+
+  .header-actions {
+    gap: 6px;
+    margin-left: 6px;
+  }
+
+  .icon-btn {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+  }
+
+  .composer-wrap {
+    padding: 10px 12px 14px;
+  }
 }
 
 .icon-btn * {
