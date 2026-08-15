@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   creator: "devmilon923",
   icons: {
     icon: "/icon.png",
-    shortcut: "/icon.png",
+    shortcut: "/favicon.ico",
     apple: "/icon.png",
   },
   openGraph: {

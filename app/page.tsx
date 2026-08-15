@@ -3,6 +3,20 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import Image from "next/image";
 import hljs from "highlight.js";
+import {
+  Sun,
+  Moon,
+  RotateCcw,
+  SendHorizontal,
+  Sparkles,
+  Copy,
+  Check,
+  Code2,
+  Zap,
+  Bug,
+  FileText,
+  ArrowRight,
+} from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_CHAT_API_URL as string;
 const SYSTEM_MESSAGE =
@@ -85,7 +99,15 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
       <div className="code-toolbar">
         <span className="code-language">{language || "code"}</span>
         <button className="copy-btn" type="button" onClick={handleCopy}>
-          {copied ? "Copied" : failed ? "Copy failed" : "Copy code"}
+          {copied ? (
+            <>
+              <Check size={13} /> Copied
+            </>
+          ) : (
+            <>
+              <Copy size={13} /> Copy code
+            </>
+          )}
         </button>
       </div>
       <div className="code-scroll">
@@ -451,20 +473,27 @@ export default function Home() {
     <>
       <main className="app">
         <header>
-          <div className="brand-wrap">
+          <div
+            className="brand-wrap"
+            onClick={handleClear}
+            role="button"
+            tabIndex={0}
+            title="Reset conversation"
+          >
             <div className="brand-icon">
               <Image
-                src="/icon.png"
+                src="/logo.png"
                 alt="Eleuthix AI Logo"
                 width={38}
                 height={38}
                 className="brand-logo-img"
               />
             </div>
-            <div>
+            <div className="brand-text-block">
               <h1 className="brand">Eleuthix AI</h1>
               <div className="status">
-                <span className="dot"></span>Connected · Always Free
+                <span className="dot"></span>
+                <span>Connected · Always Free</span>
               </div>
             </div>
           </div>
@@ -476,7 +505,7 @@ export default function Home() {
               aria-label="Toggle theme"
               onClick={toggleTheme}
             >
-              {isDark ? "☀" : "☾"}
+              {isDark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
             <button
               className="icon-btn"
@@ -485,7 +514,7 @@ export default function Home() {
               aria-label="Clear chat"
               onClick={handleClear}
             >
-              ⌫
+              <RotateCcw size={18} />
             </button>
           </div>
         </header>
@@ -493,39 +522,81 @@ export default function Home() {
         <section id="chat" className="chat" ref={chatRef} aria-label="Chat Conversation">
           {messages.length === 0 ? (
             <div id="empty" className="empty">
-              <div>
-                <h2>Ask anything with Eleuthix AI.</h2>
-                <p>
-                  Instant, free AI intelligence for coding, reasoning, and technical analysis.
+              <div className="hero-container">
+                <div className="hero-logo-wrapper">
+                  <Image
+                    src="/logo.png"
+                    alt="Eleuthix AI"
+                    width={52}
+                    height={52}
+                    className="hero-logo-img"
+                  />
+                </div>
+
+                <h2 className="hero-title">What would you like to build today?</h2>
+                <p className="hero-subtitle">
+                  High-precision AI for software development, technical reasoning, and structured writing.
                 </p>
-                <div className="suggestions">
+
+                <div className="suggestions-grid">
                   <button
                     type="button"
-                    className="suggestion-chip"
-                    onClick={() => handleSuggestionClick("Write a responsive HTML5 webpage structure")}
+                    className="suggestion-card"
+                    onClick={() => handleSuggestionClick("Write a responsive HTML5 webpage structure with CSS styling")}
                   >
-                    💻 Write HTML5 Page
+                    <div className="card-icon-wrapper code">
+                      <Code2 size={20} />
+                    </div>
+                    <div className="card-content">
+                      <div className="card-title">Write HTML5 Page</div>
+                      <div className="card-desc">Generate a responsive web layout with clean CSS</div>
+                    </div>
+                    <ArrowRight size={14} className="card-arrow" />
                   </button>
+
                   <button
                     type="button"
-                    className="suggestion-chip"
-                    onClick={() => handleSuggestionClick("Explain how WebSockets work step by step")}
+                    className="suggestion-card"
+                    onClick={() => handleSuggestionClick("Explain how WebSockets work step by step with code examples")}
                   >
-                    ⚡ Explain WebSockets
+                    <div className="card-icon-wrapper zap">
+                      <Zap size={20} />
+                    </div>
+                    <div className="card-content">
+                      <div className="card-title">Explain WebSockets</div>
+                      <div className="card-desc">Understand real-time protocol architecture step-by-step</div>
+                    </div>
+                    <ArrowRight size={14} className="card-arrow" />
                   </button>
+
                   <button
                     type="button"
-                    className="suggestion-chip"
-                    onClick={() => handleSuggestionClick("Debug JavaScript memory leaks in React hooks")}
+                    className="suggestion-card"
+                    onClick={() => handleSuggestionClick("Debug JavaScript memory leaks in React hooks with code examples")}
                   >
-                    🐞 Debug React Hooks
+                    <div className="card-icon-wrapper bug">
+                      <Bug size={20} />
+                    </div>
+                    <div className="card-content">
+                      <div className="card-title">Debug React Hooks</div>
+                      <div className="card-desc">Diagnose memory leaks and optimize hook performance</div>
+                    </div>
+                    <ArrowRight size={14} className="card-arrow" />
                   </button>
+
                   <button
                     type="button"
-                    className="suggestion-chip"
+                    className="suggestion-card"
                     onClick={() => handleSuggestionClick("Draft a project roadmap for a SaaS web application")}
                   >
-                    📝 Draft Project Plan
+                    <div className="card-icon-wrapper plan">
+                      <FileText size={20} />
+                    </div>
+                    <div className="card-content">
+                      <div className="card-title">Draft Project Plan</div>
+                      <div className="card-desc">Plan architecture and timelines for a SaaS platform</div>
+                    </div>
+                    <ArrowRight size={14} className="card-arrow" />
                   </button>
                 </div>
               </div>
@@ -539,8 +610,16 @@ export default function Home() {
                 {msg.role === "assistant" ? (
                   <div className="assistant-content">
                     <div className="assistant-meta">
-                      <span className="assistant-avatar">✦</span>
-                      <span className="assistant-name">Assistant</span>
+                      <span className="assistant-avatar">
+                        <Image
+                          src="/logo.png"
+                          alt="Eleuthix"
+                          width={18}
+                          height={18}
+                          className="assistant-avatar-img"
+                        />
+                      </span>
+                      <span className="assistant-name">Eleuthix AI</span>
                     </div>
                     <div
                       className={
@@ -567,8 +646,16 @@ export default function Home() {
             <div className="message assistant" id="typing">
               <div className="assistant-content">
                 <div className="assistant-meta">
-                  <span className="assistant-avatar">✦</span>
-                  <span className="assistant-name">Assistant</span>
+                  <span className="assistant-avatar">
+                    <Image
+                      src="/logo.png"
+                      alt="Eleuthix"
+                      width={18}
+                      height={18}
+                      className="assistant-avatar-img"
+                    />
+                  </span>
+                  <span className="assistant-name">Eleuthix AI</span>
                 </div>
                 <div className="assistant-bubble">
                   <span className="typing">
@@ -604,7 +691,7 @@ export default function Home() {
             aria-label="Send"
             disabled={isPending || !inputVal.trim()}
           >
-            ➤
+            <SendHorizontal size={18} />
           </button>
         </form>
         <div className="hint">Enter to send · Shift + Enter for new line</div>
